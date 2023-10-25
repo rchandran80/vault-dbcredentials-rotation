@@ -4,7 +4,7 @@ spring:
   cloud:
     vault:
       authentication: TOKEN
-      token: s.Q6wpEAJHfXe59vi4ovbyWQnO
+      token: hvs.cqoFA1Z7dIjweGgQyxq18PUB
       host: localhost
       port: 8200
       scheme: http
@@ -12,8 +12,19 @@ spring:
       config:
         lifecycle:
           enabled: true
-          min-renewal: 5s
-          expiry-threshold: 1m
+          #Definition enabled: This attribute determines whether the lease lifecycle management is enabled.
+          #Purpose: If set to true, Spring Cloud Vault will manage the renewal and rotation of secrets
+          #that have leases associated with them.
+          min-renewal: 1m
+          #Definition min-renewal: Specifies the minimum duration for which a lease can be renewed.
+          #Purpose: It provides a threshold. If the remaining lease duration is above this threshold,
+          #Spring Cloud Vault doesn't try to renew the lease. If it's below, the lease will be renewed.
+          #It helps in avoiding unnecessary renewals and controls how often the application checks for renewal.
+          expiry-threshold: 2m
+          #Definition min-renewal: Determines the duration before a lease expires to start attempting secret rotation.
+          #Purpose: If a lease's remaining time is less than the expiry threshold, Spring Cloud Vault will start the process
+          #to obtain a new secret (rotation). This ensures that applications using the secret have ample time to rotate
+          #to the new credentials before the old ones expire.
       generic:
         enabled: true
         backend: secret
