@@ -7,9 +7,9 @@ For Windows - https://www.postgresqltutorial.com/install-postgresql/
 
 ### Setup admin user in Postgres
 ```
-postgres=# create user admin password 'admin123';
+postgres=# create user vaultech_admin password 'admin123';
 CREATE ROLE
-postgres=# ALTER USER admin WITH SUPERUSER;
+postgres=# ALTER USER vaultech_admin WITH SUPERUSER;
 postgres=# \q
 ```
 
@@ -17,6 +17,12 @@ postgres=# \q
 ```
 helm repo add hashicorp https://helm.releases.hashicorp.com
 helm install vault hashicorp/vault --set server.dev.enabled=true
+
+brew tap hashicorp/tap
+brew install hashicorp/tap/vault
+
+brew upgrade hashicorp/tap/vault
+
 ```
 
 ### Enable the database secrets engine
@@ -28,9 +34,9 @@ vault secrets enable database
 ```
 vault write database/config/postgresql \
      plugin_name=postgresql-database-plugin \
-     connection_url="postgresql://{{username}}:{{password}}@host.docker.internal:5432/postgres?sslmode=disable" \
+     connection_url="postgresql://{{username}}:{{password}}@localhost:5432/postgres?sslmode=disable" \
      allowed_roles="*" \
-     username="admin" \
+     username="vaultech_admin" \
      password="admin123"
 ```
 
