@@ -9,10 +9,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.vault.VaultException;
 import org.springframework.vault.core.lease.SecretLeaseContainer;
+import org.springframework.vault.core.lease.SecretLeaseEventPublisher;
 import org.springframework.vault.core.lease.event.*;
 
 import javax.annotation.PostConstruct;
-import java.util.EventObject;
 import java.util.Map;
 
 import static org.springframework.vault.core.lease.domain.RequestedSecret.Mode.RENEW;
@@ -55,34 +55,34 @@ public class VaultConfiguration {
             logger.info("Event instance of :- "+event.getClass().getName());
             logger.info("Mode :- "+event.getSource().getMode());
             logger.info("Event Path :-"+event.getSource().getPath());
-            //logger.info("Is Lease Renewable :- "+event.getLease().isRenewable());
-            logger.info("Lease Id :-"+event.getLease().getLeaseId());
-            logger.info("Lease Duration :-"+event.getLease().getLeaseDuration().getSeconds());
+            logger.info("Is Lease Renewable :- "+event.getLease().isRenewable());
             logger.info("$$$$$$$$$$$  $$$$$$$$$$$$$$$$$$ \n");
-
-            logger.info("----------------------------------");
-            logger.info("Print Lease container properties *");
-            logger.info("Min renewal = "+leaseContainer.getMinRenewal());
-            logger.info("Min renewal in seconds = "+leaseContainer.getMinRenewalSeconds());
-            logger.info("Exp Threshold = "+leaseContainer.getExpiryThreshold());
-            logger.info("Exp Threshold in seconds = "+leaseContainer.getExpiryThresholdSeconds());
-            logger.info("----------------------------------\n");
-
-
 
             try {
                 if (event instanceof SecretLeaseExpiredEvent && RENEW == event.getSource().getMode()) {
-                    logger.info("** LEASE EXPIRED Cannot renew lease anymore, rotate credentials");
+                    logger.info("**SecretLeaseExpiredEvent** Reached Max Lease Ttl for Lease: " +event.getLease().getLeaseId()+ " , Cannot renew lease anymore, rotate credentials");
+                    logger.info("** Rotating credentials..\n");
                     leaseContainer.requestRotatingSecret(path);
-                } else if (event instanceof SecretLeaseCreatedEvent && ROTATE == event.getSource().getMode() ||
-                            event instanceof SecretLeaseRotatedEvent && ROTATE == event.getSource().getMode()) {
-                    logger.info("** New Lease Created or rotated **");
+                    leaseContainer.removeLeaseErrorListener(SecretLeaseEventPublisher.LoggingErrorListener.INSTANCE);
+                } else if (event instanceof SecretLeaseCreatedEvent && ROTATE == event.getSource().getMode()) { //NOTE: Condition also evaluates for SecretLeaseRotatedEvent, subclass of SecretLeaseCreatedEvent, so no need for explicit check.
+                    logger.info("**SecretLeaseCreatedEvent or SecretLeaseRotatedEvent ** New Lease Created ** " + event.getLease().getLeaseId()+ " with Lease duration: "+event.getLease().getLeaseDuration().getSeconds()+"\n");
                     Map<String, Object> secrets = ((SecretLeaseCreatedEvent) event).getSecrets();
                     secretsProcessing(secrets);
-                } else if (event instanceof AfterSecretLeaseRenewedEvent && RENEW == event.getSource().getMode()){
-                    logger.info("** LEASE RENEWED **, LEASE ID: -"+event.getLease().getLeaseId());
-                    logger.info("** NEW LEASE DURATION ** :- "+event.getLease().getLeaseDuration());
-                    //logger.info(""+'\n');
+                    try{
+                        logger.info("** Revoking lease now..\n");
+                        leaseContainer.destroy(); //Triggers events for lease revocation
+                    }catch (Exception e) {
+                        logger.error("Error occured while revoking lease ** "+e.getMessage());
+                    }
+                } else if (event instanceof AfterSecretLeaseRenewedEvent && RENEW == event.getSource().getMode() ||
+                            event instanceof AfterSecretLeaseRenewedEvent && ROTATE == event.getSource().getMode()){
+                    logger.info("**AfterSecretLeaseRenewedEvent** Lease renewed for Lease ID: -"+event.getLease().getLeaseId()+ " with Lease duration: "+event.getLease().getLeaseDuration().getSeconds()+"\n");
+                } else if (event instanceof BeforeSecretLeaseRevocationEvent) {
+                    logger.info("%&%&^&%& BeforeSecretLeaseRevocationEvent *^*^*^* ON Lease ID "+event.getLease().getLeaseId()+"\n");
+                } else if (event instanceof AfterSecretLeaseRevocationEvent) {
+                    logger.info("*&*&*&*&AfterSecretLeaseRevocationEvent generated*&*^^&^& ON Lease ID "+event.getLease().getLeaseId()+"\n");
+                } else if (event instanceof SecretLeaseErrorEvent) {
+                    logger.info("######SecretLeaseErrorEvent generated###### Error occurred during secret retrieval or lease management!!! \n");
                 }
             } catch (VaultException e) {
                 logger.error("Lease renewal exception from Vault, check and reconfigure TTL settings", e);

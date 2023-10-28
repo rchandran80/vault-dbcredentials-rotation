@@ -20,7 +20,7 @@ spring:
           #Purpose: It provides a threshold. If the remaining lease duration is above this threshold,
           #Spring Cloud Vault doesn't try to renew the lease. If it's below, the lease will be renewed.
           #It helps in avoiding unnecessary renewals and controls how often the application checks for renewal.
-          expiry-threshold: 2m
+          expiry-threshold: 3m
           #Definition min-renewal: Determines the duration before a lease expires to start attempting secret rotation.
           #Purpose: If a lease's remaining time is less than the expiry threshold, Spring Cloud Vault will start the process
           #to obtain a new secret (rotation). This ensures that applications using the secret have ample time to rotate
