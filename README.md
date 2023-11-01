@@ -44,6 +44,6 @@ vault write database/config/postgresql \
 ```
 vault write database/roles/myrole db_name=postgresql \
      creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO \"{{name}}\"; GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" \
-     default_ttl="30s" \
-     max_ttl="1m"
+     default_ttl="2m" \
+     max_ttl="4m"
 ```
